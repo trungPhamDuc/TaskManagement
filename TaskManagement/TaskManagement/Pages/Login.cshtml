@@ -1,0 +1,4 @@
+@page
+@model TaskManagement.Pages.LoginModel
+@{ Layout = null; }
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Đăng nhập TPM</title><link rel="stylesheet" href="~/css/site.css" asp-append-version="true"></head><body class="login-page"><form method="post" class="login-card"><div class="brand-mark">T</div><div class="eyebrow">TPM WORKSPACE</div><h1>Đăng nhập</h1><p>Đăng nhập để tiếp tục vào bảng công việc.</p>@if(!string.IsNullOrEmpty(Model.ErrorMessage)){<div class="login-error">@Model.ErrorMessage</div>}<label>Tên đăng nhập<input asp-for="Username" autocomplete="username" required autofocus></label><label>Mật khẩu<input asp-for="Password" type="password" autocomplete="current-password" required></label><button class="primary-button">Đăng nhập</button></form></body></html>

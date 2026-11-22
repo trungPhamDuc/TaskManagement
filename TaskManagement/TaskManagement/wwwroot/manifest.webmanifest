@@ -1,0 +1,10 @@
+{
+  "name": "TPM Task Management",
+  "short_name": "TPM Tasks",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8fc",
+  "theme_color": "#4268dd",
+  "icons": [{ "src": "/icons/tpm.svg", "sizes": "any 192x192 512x512", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

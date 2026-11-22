@@ -1,0 +1,19 @@
+@page
+@model TaskManagement.Pages.CompletedModel
+@using TaskManagement.Models
+@{ ViewData["Title"] = "Lịch sử hoàn thành"; }
+<div class="tpm-shell">
+    <aside class="side-nav">
+        <div class="brand"><span class="brand-mark">T</span><span>TPM<span class="brand-sub">WORKSPACE</span></span></div>
+        <div class="nav-caption">KHÔNG GIAN LÀM VIỆC</div><a class="nav-item" asp-page="/Index">▦ <span>Bảng công việc</span></a><a class="nav-item selected">✓ <span>Đã hoàn thành</span></a>
+        @if(Model.CurrentUser.Role==UserRole.Admin){<a class="nav-item" asp-page="/Accounts">♙ <span>Quản lý tài khoản</span></a>}
+        <div class="nav-caption">NHÓM</div>@foreach(var g in Enum.GetValues<DepartmentGroup>()){<a class="nav-item" asp-page="/Index" asp-route-group="@g">◉ <span>@g.Label()</span><small>@Model.CountFor(g)</small></a>}
+        <div class="side-bottom"><div class="user-avatar">@Model.CurrentUser.FullName[..1]</div><div><b>@Model.CurrentUser.FullName</b><small>@Model.CurrentUser.Role.Label() · @Model.CurrentUser.Group.Label()</small></div><a asp-page="/Logout">Đăng xuất</a></div>
+    </aside>
+    <main class="main-area"><div class="topbar"><div>TPM Department <span>/</span> Công việc đã hoàn thành</div><div class="top-actions"><div class="user-avatar mini">@Model.CurrentUser.FullName[..1]</div></div></div>
+        <section class="content-area"><div class="completed-page"><header class="completed-header"><div><div class="eyebrow">TPM · ARCHIVE</div><h1>Công việc đã hoàn thành</h1><p>Lịch sử nhiệm vụ hoàn thành, có thể tìm và lọc theo ngày.</p></div></header>
+            <section class="completed-panel"><form method="get" class="completed-filters"><label>Tìm theo tên, mã, người thực hiện<input name="search" value="@Model.Search" placeholder="VD: TPM-A12, bảo trì, Nguyen Van A"/></label><label>Từ ngày<input type="date" name="from" value="@Model.From?.ToString("yyyy-MM-dd")"/></label><label>Đến ngày<input type="date" name="to" value="@Model.To?.ToString("yyyy-MM-dd")"/></label><label>Nhóm<select name="group"><option value="">Tất cả nhóm</option>@foreach(var g in Enum.GetValues<DepartmentGroup>()){<option value="@g" selected="@(Model.Group==g)">@g.Label()</option>}</select></label><label>Khu vực<select name="area"><option value="">Tất cả khu vực</option>@foreach(var a in Enum.GetValues<WorkArea>()){<option value="@a" selected="@(Model.Area==a)">@a.Label()</option>}</select></label><div class="completed-filter-actions"><button class="primary-button">Tìm kiếm</button><a class="secondary-button" asp-page="/Completed">Xóa lọc</a></div></form>
+                <div class="completed-result-count">@Model.Tasks.Count nhiệm vụ</div><div class="account-table"><table><thead><tr><th>Mã</th><th>Tên nhiệm vụ</th><th>Nhóm</th><th>Khu vực</th><th>Người thực hiện</th><th>Ưu tiên</th><th>Ngày tạo</th><th>Hoàn thành lúc</th></tr></thead><tbody>@foreach(var t in Model.Tasks){<tr><td>@t.Key</td><td><b>@t.Title</b><br/><small>@t.Description</small></td><td>@t.Group.Label()</td><td>@t.Area.Label()</td><td>@(t.Assignee?.FullName ?? "—")</td><td>@t.Priority.Label()</td><td>@t.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td><td>@(t.CompletedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</td></tr>}@if(Model.Tasks.Count==0){<tr><td colspan="8" class="empty-result">Không có nhiệm vụ phù hợp với bộ lọc.</td></tr>}</tbody></table></div>
+            </section></div></section>
+    </main>
+</div>

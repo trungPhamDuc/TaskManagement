@@ -1,10 +1,96 @@
-﻿@page
-@model IndexModel
+@page
+@model TaskManagement.Pages.IndexModel
+@using TaskManagement.Models
+@using TaskStatus = TaskManagement.Models.TaskStatus
 @{
-    ViewData["Title"] = "Home page";
+    ViewData["Title"] = "TPM • Bảng công việc";
+    var columns = new[] { TaskStatus.Unassigned, TaskStatus.Assigned, TaskStatus.Pending, TaskStatus.Review, TaskStatus.Done };
+}
+<div class="tpm-shell">
+    <aside class="side-nav">
+        <div class="brand"><span class="brand-mark">T</span><span>TPM<span class="brand-sub">WORKSPACE</span></span></div>
+        <div class="nav-caption">KHÔNG GIAN LÀM VIỆC</div><a class="nav-item selected">▦ <span>Bảng công việc</span></a>
+        <a class="nav-item" asp-page="/Completed">✓ <span>Đã hoàn thành</span></a><div class="nav-caption">NHÓM</div>
+        @foreach(var g in Enum.GetValues<DepartmentGroup>()){<a class="nav-item" asp-page="/Index" asp-route-group="@g">◉ <span>@g.Label()</span><small>@Model.CountFor(g)</small></a>}
+        @if(Model.CurrentUser.Role == UserRole.Admin){<a class="nav-item" asp-page="/Accounts">♙ <span>Quản lý tài khoản</span></a>}
+        <div class="side-bottom"><div class="user-avatar">@Model.CurrentUser.FullName[..1]</div><div><b>@Model.CurrentUser.FullName</b><small>@Model.CurrentUser.Role.Label() · @Model.CurrentUser.Group.Label()</small></div><a asp-page="/Logout">Đăng xuất</a></div>
+    </aside>
+    <main class="main-area">
+        <div class="topbar"><div>TPM Department <span>/</span> Bảng công việc</div><div class="top-actions">
+            <details class="notification-menu">
+                <summary class="notification-trigger" aria-label="Thông báo nhiệm vụ" title="Thông báo nhiệm vụ"><svg class="notification-bell" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span>Thông báo</span>@if(Model.UnreadNotificationCount > 0){<b class="notification-count">@Model.UnreadNotificationCount</b>}</summary>
+                <div class="notification-panel">
+                    <div class="notification-panel-head"><div><strong>Thông báo nhiệm vụ</strong><small>Nhiệm vụ khẩn cấp hoặc đến hạn trong 3 ngày</small></div><span class="notification-total">@Model.AttentionTasks.Count</span></div>
+                    <section class="notification-attention"><div class="notification-section-title"><b>Thông báo phân công</b><span>@Model.UnreadNotificationCount chưa xem</span></div>
+                        @if(Model.Notifications.Count == 0){<p class="notification-empty">Chưa có thông báo phân công.</p>}
+                        else{<ul>@foreach(var notification in Model.Notifications){<li class="@(notification.IsRead ? "notification-read" : "notification-unread")"><div><span class="notification-task-title">@notification.WorkTask.Title</span><span class="notification-task-meta">@notification.WorkTask.Key · @notification.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span><span class="notification-task-status">@(notification.IsRead ? "Đã xem" : "Chưa xem")</span></div>@if(!notification.IsRead){<form method="post" asp-page-handler="MarkNotificationRead"><input type="hidden" name="id" value="@notification.Id"/><button type="submit">Đánh dấu đã xem</button></form>}</li>}</ul>}
+                    </section>
+                    @if(Model.CurrentUser.Role is UserRole.Supervisor or UserRole.Leader){
+                        <section class="notification-overdue"><div class="notification-section-title"><b>Nhiệm vụ trễ chưa hoàn thành</b><span>@Model.OverdueTasks.Count</span></div>
+                            @if(Model.OverdueTasks.Count == 0){<p class="notification-empty">Không có nhiệm vụ nào bị trễ.</p>}
+                            else{<ul>@foreach(var task in Model.OverdueTasks){<li><button type="button" onclick="openTaskFromNotification(this)" data-task="task-@task.Id"><span class="notification-task-title">@task.Title</span><span class="notification-task-meta">@task.Key · @task.Group.Label() · quá hạn @(task.DueAt?.ToString("dd/MM/yyyy"))</span><span class="notification-task-status">@task.Status.Label()</span></button></li>}</ul>}
+                        </section>
+                    }
+                    <section class="notification-attention"><div class="notification-section-title"><b>Khẩn cấp / sắp đến hạn</b></div>
+                        @{var upcomingTasks = Model.AttentionTasks.Where(t => t.Priority == TaskPriority.Urgent || (t.DueAt.HasValue && t.DueAt.Value >= DateTime.Today && t.DueAt.Value < DateTime.Today.AddDays(3))).ToList();}
+                        @if(upcomingTasks.Count == 0){<p class="notification-empty">Không có nhiệm vụ khẩn cấp hoặc sắp đến hạn.</p>}
+                        else{<ul>@foreach(var task in upcomingTasks){<li><button type="button" onclick="openTaskFromNotification(this)" data-task="task-@task.Id"><span class="notification-task-title">@task.Title</span><span class="notification-task-meta">@task.Key · @(task.DueAt.HasValue ? "Hạn " + task.DueAt.Value.ToString("dd/MM/yyyy") : "Chưa đặt hạn")</span><span class="notification-task-status @(task.Priority == TaskPriority.Urgent ? "urgent" : "")">@(task.Priority == TaskPriority.Urgent ? "Khẩn cấp" : task.Status.Label())</span></button></li>}</ul>}
+                    </section>
+                </div>
+            </details>
+            <button class="push-enable-button" id="enable-push" type="button">Bật thông báo điện thoại</button><div class="user-avatar mini">@Model.CurrentUser.FullName[..1]</div>
+        </div></div>
+        <section class="content-area">
+            @if(TempData["UploadMessage"] is string uploadMessage){<div class="upload-message">@uploadMessage</div>}
+            <div class="heading-row"><div><div class="eyebrow">TPM · OPERATIONS</div><h1>Bảng công việc</h1><p>Theo dõi tiến độ công việc trong toàn bộ phòng ban TPM.</p></div>@if (Model.CurrentUser.Role is UserRole.Supervisor or UserRole.Leader){<button class="primary-button" onclick="document.getElementById('create-task').showModal()">＋ Tạo nhiệm vụ</button>}</div>
+            <div class="summary-grid"><div class="summary-card"><span>Tổng nhiệm vụ</span><strong>@Model.Tasks.Count</strong><small>Trong bảng hiện tại</small><i class="summary-icon blue">▦</i></div><div class="summary-card"><span>Đang thực hiện</span><strong>@Model.Tasks.Count(t => t.Status == TaskStatus.Pending)</strong><small>Đang được xử lý</small><i class="summary-icon violet">◷</i></div><div class="summary-card"><span>Chờ duyệt</span><strong>@Model.Tasks.Count(t => t.Status == TaskStatus.Review)</strong><small>Cần supervisor xem</small><i class="summary-icon amber">⌑</i></div><div class="summary-card"><span>Đã hoàn thành</span><strong>@Model.Tasks.Count(t => t.Status == TaskStatus.Done)</strong><small>Hoàn tất</small><i class="summary-icon green">✓</i></div></div>
+            <div class="board-toolbar"><div class="filter-tabs"><a class="@(Model.ViewFilter=="all" ? "active" : "")" asp-page="/Index" asp-route-view="all" asp-route-group="@Model.Group" asp-route-area="@Model.Area" asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")">Tất cả</a><a class="@(Model.ViewFilter=="mine" ? "active" : "")" asp-page="/Index" asp-route-view="mine" asp-route-group="@Model.Group" asp-route-area="@Model.Area" asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")">Việc của tôi</a><a class="@(Model.ViewFilter=="due" ? "active" : "")" asp-page="/Index" asp-route-view="due" asp-route-group="@Model.Group" asp-route-area="@Model.Area" asp-route-fromDate="@Model.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.ToDate?.ToString("yyyy-MM-dd")">Đến hạn</a></div><div class="filter-controls"><form method="get"><input type="hidden" name="view" value="@Model.ViewFilter"/><select name="Group" onchange="this.form.submit()"><option value="">Tất cả nhóm</option>@foreach(var g in Enum.GetValues<DepartmentGroup>()){<option value="@g" selected="@(Model.Group == g)">@g.Label()</option>}</select><select name="Area" onchange="this.form.submit()"><option value="">Tất cả khu vực</option>@foreach(var a in Enum.GetValues<WorkArea>()){<option value="@a" selected="@(Model.Area == a)">@a.Label()</option>}</select><input class="task-date-input" type="date" name="fromDate" value="@Model.FromDate?.ToString("yyyy-MM-dd")" aria-label="Từ ngày" title="Từ ngày"/><span class="date-range-separator">–</span><input class="task-date-input" type="date" name="toDate" value="@Model.ToDate?.ToString("yyyy-MM-dd")" aria-label="Đến ngày" title="Đến ngày"/><button class="date-filter-button" type="submit">Lọc ngày</button>@if(Model.FromDate.HasValue || Model.ToDate.HasValue){<a class="clear-date-filter" asp-page="/Index" asp-route-view="@Model.ViewFilter" asp-route-group="@Model.Group" asp-route-area="@Model.Area">Xóa</a>}</form></div></div>
+
+            <div class="kanban">@foreach(var col in columns){var items = Model.Tasks.Where(t => t.Status == col).ToList();<section class="kanban-col"><div class="column-head"><span class="status-dot @col.ToString().ToLowerInvariant()"></span><b>@col.Label()</b><span class="count">@items.Count</span></div><div class="task-list">@foreach(var task in items){<article class="task-card"><div class="task-key">@task.Key <span class="priority @task.Priority.ToString().ToLowerInvariant()">◆ @task.Priority.Label()</span></div><button class="task-title-button" type="button" onclick="document.getElementById('task-@task.Id').showModal()">@task.Title</button><div class="task-actions">@if(Model.CurrentUser.Role is UserRole.Supervisor or UserRole.Leader){if(Model.CurrentUser.Role==UserRole.Supervisor && task.AssigneeId==Model.CurrentUser.Id && task.SupervisorAcceptedAt==null){<form method="post" asp-page-handler="AcceptSupervisorTask"><input type="hidden" name="id" value="@task.Id"/><button class="primary-button">Đã tiếp nhận</button></form>}else{<button type="button" class="primary-button" onclick="document.getElementById('task-@task.Id').showModal()">Cập nhật</button>}}else if(Model.CurrentUser.Role==UserRole.Employee && task.AssigneeId==Model.CurrentUser.Id){<form method="post" asp-page-handler="ChangeEmployeeStatus" class="employee-status-form"><input type="hidden" name="id" value="@task.Id"/><select name="status" aria-label="Trạng thái">@foreach(var status in new[]{TaskStatus.Assigned,TaskStatus.Pending,TaskStatus.Review}){<option value="@status" selected="@(task.Status==status)">@status.Label()</option>}</select><button type="submit" class="primary-button">Lưu trạng thái</button></form>}<button type="button" onclick="document.getElementById('task-@task.Id').showModal()">Chi tiết</button></div></article>}</div>@if(col==TaskStatus.Unassigned && Model.CurrentUser.Role is UserRole.Supervisor or UserRole.Leader){<button class="add-task" onclick="document.getElementById('create-task').showModal()">＋ Thêm nhiệm vụ</button>}</section>}</div>
+        </section>
+    </main>
+</div>
+@foreach(var task in Model.Tasks.Concat(Model.AttentionTasks).GroupBy(t => t.Id).Select(g => g.First())){<dialog id="task-@task.Id" class="task-dialog"><form method="dialog" class="dialog-close"><button class="icon-button">×</button></form><div class="eyebrow">@task.Key · CHI TIẾT NHIỆM VỤ</div><h2>@task.Title</h2><p class="detail-description">@(task.Description ?? "Chưa có mô tả.")</p>
+    <div class="detail-grid"><div><small>Nhóm</small><b>@task.Group.Label()</b></div><div><small>Khu vực</small><b>@task.Area.Label()</b></div><div><small>Người thực hiện</small><b>@(task.Assignee?.FullName ?? "Chưa phân công")</b></div><div><small>Trạng thái</small><b>@task.Status.Label()</b></div><div><small>Ưu tiên</small><b>@task.Priority.Label()</b></div><div><small>Ngày tạo</small><b>@task.CreatedAt.ToString("dd/MM/yyyy HH:mm")</b></div><div><small>Hạn hoàn thành</small><b>@(task.DueAt?.ToString("dd/MM/yyyy") ?? "Chưa đặt")</b></div></div>
+    @if(task.Images.Count > 0){<h3 class="task-images-heading">Ảnh đính kèm</h3><div class="task-images">@foreach(var image in task.Images.OrderBy(image=>image.UploadedAt)){<a href="/task-images/@image.Id" target="_blank" rel="noopener"><img src="/task-images/@image.Id" alt="@image.FileName" loading="lazy"/><span>@(image.Kind==TaskImageKind.Completion ? "Ảnh hoàn thành" : "Ảnh nhiệm vụ")</span></a>}</div>}
+    @if(Model.CurrentUser.Role == UserRole.Employee && task.AssigneeId == Model.CurrentUser.Id){<form method="post" asp-page-handler="ChangeEmployeeStatus" enctype="multipart/form-data" class="completion-upload-form"><input type="hidden" name="id" value="@task.Id"/><label>Ảnh hoàn thành (nếu có)<input name="completionImages" type="file" accept="image/*" multiple/></label><button class="secondary-button" name="status" value="Review">Gửi chờ duyệt kèm ảnh</button></form>}
+    @if(Model.CurrentUser.Role is UserRole.Supervisor or UserRole.Leader){<hr/><h3>Chỉnh sửa nhiệm vụ</h3><form method="post" asp-page-handler="UpdateTask" enctype="multipart/form-data" class="task-edit-form"><input type="hidden" name="id" value="@task.Id"/><label>Tiêu đề<input name="title" value="@task.Title" required maxlength="200"/></label><label>Mô tả<textarea name="description" rows="3">@task.Description</textarea></label><div class="form-grid"><label>Nhóm<select name="group" class="assignee-group" data-assignee="assignee-@task.Id">@foreach(var g in Enum.GetValues<DepartmentGroup>()){<option value="@g" selected="@(task.Group==g)">@g.Label()</option>}</select></label><label>Khu vực<select name="area">@foreach(var a in Enum.GetValues<WorkArea>()){<option value="@a" selected="@(task.Area==a)">@a.Label()</option>}</select></label></div><div class="form-grid"><label>Người thực hiện<select name="assigneeId" id="assignee-@task.Id"><option value="">Chưa phân công</option>@foreach(var u in Model.Users.Where(u=>u.Role==UserRole.Employee || u.Role==UserRole.Supervisor)){<option value="@u.Id" data-group="@u.Group" selected="@(task.AssigneeId==u.Id)">@u.FullName@(u.Role == UserRole.Supervisor ? " (sup)" : "") · @u.GroupLabel()</option>}</select></label><label>Hạn hoàn thành<input name="dueAt" type="date" value="@task.DueAt?.ToString("yyyy-MM-dd")"/></label></div><div class="form-grid"><label>Độ ưu tiên<select name="priority">@foreach(var p in Enum.GetValues<TaskPriority>()){<option value="@p" selected="@(task.Priority==p)">@p.Label()</option>}</select></label><label>Trạng thái<select name="status">@foreach(var s in Enum.GetValues<TaskStatus>().Where(s => task.AssigneeId is null || s != TaskStatus.Unassigned)){<option value="@s" selected="@(task.Status==s)">@s.Label()</option>}</select></label></div><label>Thêm ảnh nhiệm vụ<input name="taskImages" type="file" accept="image/*" multiple/></label><button class="primary-button">Lưu thay đổi</button></form><form method="post" asp-page-handler="DeleteTask" onsubmit="return confirm('Xóa nhiệm vụ này?')"><input type="hidden" name="id" value="@task.Id"/><button class="delete-button">Xóa nhiệm vụ</button></form>}
+
+    </dialog>}
+
+<script>
+function openTaskFromNotification(button) {
+    button.closest('.notification-menu').open = false;
+    document.getElementById(button.dataset.task)?.showModal();
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const raw = atob((base64String + padding).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from([...raw].map(char => char.charCodeAt(0)));
+}
+document.getElementById('enable-push')?.addEventListener('click', async event => {
+    const button = event.currentTarget;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) { button.textContent = 'Thiết bị chưa hỗ trợ'; return; }
+    if (!window.isSecureContext) { button.textContent = 'Cần HTTPS để bật thông báo'; return; }
+    button.disabled = true;
+    try {
+        const registration = await navigator.serviceWorker.register('/service-worker.js');
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') { button.textContent = 'Chưa cấp quyền thông báo'; return; }
+        const keyResponse = await fetch('/push/public-key');
+        if (!keyResponse.ok) throw new Error('Máy chủ chưa cấu hình Web Push/VAPID.');
+        const { publicKey } = await keyResponse.json();
+        const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+        const response = await fetch('/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(subscription.toJSON()) });
+        if (!response.ok) throw new Error('Không thể lưu đăng ký thông báo.');
+        button.textContent = 'Đã bật thông báo';
+    } catch (error) { button.textContent = error.message || 'Không bật được thông báo'; }
+    finally { button.disabled = false; }
+});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+const taskIdFromPush = new URLSearchParams(location.search).get('task');
+if (taskIdFromPush) document.getElementById(`task-${taskIdFromPush}`)?.showModal();
+
+</script>
+<dialog id="create-task"><form method="post" asp-page-handler="Create" enctype="multipart/form-data"><div class="modal-head"><div><div class="eyebrow">TPM · OPERATIONS</div><h2>Tạo nhiệm vụ</h2></div><button type="button" class="icon-button" onclick="this.closest('dialog').close()">×</button></div><label>Tiêu đề<input name="Title" required maxlength="200"/></label><label>Mô tả<textarea name="Description" rows="3"></textarea></label><div class="form-grid"><label>Nhóm<select name="Group" class="assignee-group" data-assignee="create-assignee">@foreach(var g in Enum.GetValues<DepartmentGroup>()){<option value="@g">@g.Label()</option>}</select></label><label>Khu vực<select name="Area">@foreach(var a in Enum.GetValues<WorkArea>()){<option value="@a">@a.Label()</option>}</select></label></div><div class="form-grid"><label>Người thực hiện<select name="AssigneeId" id="create-assignee"><option value="">Chưa phân công</option>@foreach(var u in Model.Users.Where(u=>u.Role==UserRole.Employee || u.Role==UserRole.Supervisor)){<option value="@u.Id" data-group="@u.Group">@u.FullName@(u.Role == UserRole.Supervisor ? " (sup)" : "") · @u.GroupLabel()</option>}</select></label><label>Hạn hoàn thành<input name="DueAt" type="date"/></label></div><label>Độ ưu tiên<select name="Priority">@foreach(var p in Enum.GetValues<TaskPriority>()){<option value="@p">@p.Label()</option>}</select></label><label>Ảnh nhiệm vụ<input name="taskImages" type="file" accept="image/*" multiple/></label><div class="modal-actions"><button type="button" class="secondary-button" onclick="this.closest('dialog').close()">Hủy</button><button class="primary-button">Tạo nhiệm vụ</button></div></form></dialog>

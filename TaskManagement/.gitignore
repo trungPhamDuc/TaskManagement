@@ -1,0 +1,39 @@
+# Visual Studio / IDE
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.idea/
+.vscode/
+
+# .NET build and publish output
+**/bin/
+**/obj/
+**/out/
+**/publish/
+artifacts/
+TaskManagement/App_Data/TaskImages/
+TestResults/
+
+# NuGet packages and temporary files
+*.nupkg
+*.snupkg
+**/packages/
+*.tmp
+*.log
+
+# Local secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+**/appsettings.*.local.json
+**/Properties/PublishProfiles/*.pubxml
+**/Properties/PublishProfiles/*.publishsettings
+secrets.json
+
+# OS-generated files
+Thumbs.db
+Desktop.ini
+.DS_Store

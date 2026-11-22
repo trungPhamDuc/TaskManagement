@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\TaskManagement\\TaskManagement\\TaskManagement\\TaskManagement.csproj": {}
+    "E:\\TaskManagement\\TaskManagement\\TaskManagement\\TaskManagement.csproj": {}
   },
   "projects": {
-    "D:\\TaskManagement\\TaskManagement\\TaskManagement\\TaskManagement.csproj": {
+    "E:\\TaskManagement\\TaskManagement\\TaskManagement\\TaskManagement.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\TaskManagement\\TaskManagement\\TaskManagement\\TaskManagement.csproj",
+        "projectUniqueName": "E:\\TaskManagement\\TaskManagement\\TaskManagement\\TaskManagement.csproj",
         "projectName": "TaskManagement",
-        "projectPath": "D:\\TaskManagement\\TaskManagement\\TaskManagement\\TaskManagement.csproj",
-        "packagesPath": "C:\\Users\\THE PHAM\\.nuget\\packages\\",
-        "outputPath": "D:\\TaskManagement\\TaskManagement\\TaskManagement\\obj\\",
+        "projectPath": "E:\\TaskManagement\\TaskManagement\\TaskManagement\\TaskManagement.csproj",
+        "packagesPath": "C:\\Users\\TRUNG PHAM\\.nuget\\packages\\",
+        "outputPath": "E:\\TaskManagement\\TaskManagement\\TaskManagement\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\THE PHAM\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\TRUNG PHAM\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -45,12 +45,42 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.400"
+        "SdkAnalysisLevel": "11.0.100"
       },
       "frameworks": {
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
+          "dependencies": {
+            "Azure.Identity": {
+              "target": "Package",
+              "version": "[1.21.0, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.10, )"
+            },
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[8.0.10, )"
+            },
+            "Microsoft.EntityFrameworkCore.Tools": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.10, )"
+            },
+            "Microsoft.Identity.Client": {
+              "target": "Package",
+              "version": "[4.92.0, )"
+            },
+            "WebPush": {
+              "target": "Package",
+              "version": "[1.0.13, )"
+            }
+          },
           "imports": [
             "net461",
             "net462",
@@ -70,7 +100,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.402/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\11.0.100/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
